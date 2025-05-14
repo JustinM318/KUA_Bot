@@ -12,10 +12,11 @@ class BirthdayCog(commands.Cog):
         self.cursor = self.db.cursor()
 
         self.cursor.execute('''
-        CREATE TABLE IF NOT EXISTS birthdays (
+        CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER NOT NULL,
             birthday TEXT,
+            favoritePokemon TEXT,
             currentAge INTEGER
         )
         ''')
@@ -31,7 +32,7 @@ class BirthdayCog(commands.Cog):
 
             # Query the database for today's birthdays
             self.cursor.execute('''
-            SELECT user_id, birthday FROM birthdays
+            SELECT user_id, birthday FROM users
             WHERE birthday LIKE ?
             ''', (f'{today}%',))
             birthdays = self.cursor.fetchall()
@@ -45,7 +46,18 @@ class BirthdayCog(commands.Cog):
                     # Send a birthday message to specific channel
                     if channel and user:
                         print(f"Sending birthday message to {user.name} in channel {channel.name}.")
-                        await channel.send(f"Happy Birthday <@{user_id}>! 🎉🎂")
+                        #await channel.send(f"Happy Birthday <@{user_id}>! 🎉🎂")
+                        embed = discord.Embed(
+                            title="Birthday alert!",
+                            description=f"Happy Birthday <@{user_id}>! 🎉🎂",
+                            color=discord.Color.blue()
+                        )
+                        embed.set_thumbnail(url=user.avatar.url)
+                        embed.set_footer(text="Post any and all pictures to celebrate!")
+                        file = discord.File("assets/happyBirthday.png")
+                        embed.set_image(url="attachment://happyBirthday.png")            
+                        embed.set_author(name="KUA Bot", icon_url=self.bot.user.avatar.url)
+                        await channel.send(file = file, embed=embed)
                     else:
                         if channel is None:
                             print(f"Channel not found for ID: {user_id}")
@@ -84,21 +96,21 @@ class BirthdayCog(commands.Cog):
         try:
             # Check if the birthday already exists for the target user
             self.cursor.execute('''
-            SELECT * FROM birthdays WHERE user_id = ?
+            SELECT * FROM users WHERE user_id = ?
             ''', (target_user.id,))
             existing_birthday = self.cursor.fetchone()
 
             if existing_birthday:
                 # Update the birthday if it already exists
                 self.cursor.execute('''
-                UPDATE birthdays SET birthday = ? WHERE user_id = ?
+                UPDATE users SET birthday = ? WHERE user_id = ?
                 ''', (birthday, target_user.id))
                 self.db.commit()
                 await interaction.followup.send(f"Updated birthday for {target_user}: {birthday}!")
             else:
                 # Insert a new birthday if it doesn't exist
                 self.cursor.execute('''
-                INSERT INTO birthdays (user_id, birthday)
+                INSERT INTO users (user_id, birthday)
                 VALUES (?, ?)
                 ''', (target_user.id, birthday))
                 self.db.commit()
@@ -115,14 +127,19 @@ class BirthdayCog(commands.Cog):
         try:
             # Query the database for all birthdays
             self.cursor.execute('''
-            SELECT user_id, birthday FROM birthdays
+            SELECT user_id, birthday FROM users
             ''')
             birthdays = self.cursor.fetchall()
 
             if birthdays:
                 birthday_list = "\n".join([f"<@{user_id}>: {birthday}" for user_id, birthday in birthdays])
                 print(f"Registered birthdays:\n{birthday_list}")
-                await interaction.followup.send(f"Registered birthdays:\n{birthday_list}")
+                discord.embed(
+                    title="Registered Birthdays",
+                    description=birthday_list,
+                    color=discord.Color.blue()
+                )
+                #await interaction.followup.send(f"Registered birthdays:\n{birthday_list}")
             else:
                 await interaction.followup.send("No registered birthdays found.", ephemeral=True)
         except sqlite3.Error as e:
@@ -149,7 +166,7 @@ class BirthdayCog(commands.Cog):
         try:
             # Delete the birthday for the target user
             self.cursor.execute('''
-            DELETE FROM birthdays WHERE user_id = ?
+            DELETE FROM users WHERE user_id = ?
             ''', (target_user.id,))
             self.db.commit()
 

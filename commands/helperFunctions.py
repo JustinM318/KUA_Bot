@@ -1,11 +1,14 @@
 import random
 import discord
+import sqlite3
 from discord import app_commands
 from discord.ext import commands
         
 class HelperFunction(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.db = sqlite3.connect('KUA.db')
+        self.cursor = self.db.cursor()
         
     @app_commands.command(name="flipcoin", description="Flip a coin")
     async def flip_coin(self, interaction: discord.Interaction):
@@ -22,6 +25,17 @@ class HelperFunction(commands.Cog):
             return
         result = random.randint(1, sides)
         await interaction.followup.send(f"You rolled a {result} on a {sides}-sided die.")
+        
+    @app_commands.command(name="setfavoritepokemon", description="Sets a favorite pokemon")
+    async def setfavoritepokemon(self, interaction: discord.Interaction, favepokemon: str):
+        await interaction.response.defer(thinking=True)
+        self.cursor.execute('''
+        INSERT INTO users (favorite_pokemon) VALUES ? WHERE user_id = ?
+        ''', (f'{favepokemon}', interaction.user.id))
+        self.db.commit()
+        await interaction.followup.send(f"Your favorite Pokémon has been set to: {favePKMN}")
+
+
 
 async def setup(bot):
     await bot.add_cog(HelperFunction(bot))   
