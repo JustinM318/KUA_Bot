@@ -44,6 +44,7 @@ class BirthdayCog(commands.Cog):
                     channel = await self.bot.fetch_channel(1371845449778204692)  # Replace with your channel ID
                     # Send a birthday message to specific channel
                     if channel and user:
+                        print(f"Sending birthday message to {user.name} in channel {channel.name}.")
                         await channel.send(f"Happy Birthday <@{user_id}>! 🎉🎂")
                     else:
                         if channel is None:
@@ -101,6 +102,7 @@ class BirthdayCog(commands.Cog):
                 VALUES (?, ?)
                 ''', (target_user.id, birthday))
                 self.db.commit()
+                print(f"Inserted birthday for {target_user}: {birthday}")
                 await interaction.followup.send(f"Registered birthday for {target_user}: {birthday}!")
         except sqlite3.Error as e:
             await interaction.followup.send(f"An error occurred: {e}", ephemeral=True)
@@ -119,6 +121,7 @@ class BirthdayCog(commands.Cog):
 
             if birthdays:
                 birthday_list = "\n".join([f"<@{user_id}>: {birthday}" for user_id, birthday in birthdays])
+                print(f"Registered birthdays:\n{birthday_list}")
                 await interaction.followup.send(f"Registered birthdays:\n{birthday_list}")
             else:
                 await interaction.followup.send("No registered birthdays found.", ephemeral=True)
@@ -151,8 +154,10 @@ class BirthdayCog(commands.Cog):
             self.db.commit()
 
             if self.cursor.rowcount > 0:
+                print(f"Deleted birthday for {target_user}.")
                 await interaction.followup.send(f"Deleted birthday for {target_user}!")
             else:
+                print(f"Deleted failed for {target_user}. No birthday found.")
                 await interaction.followup.send(f"No birthday found for {target_user}.", ephemeral=True)
         except sqlite3.Error as e:
             await interaction.followup.send(f"An error occurred: {e}", ephemeral=True)
