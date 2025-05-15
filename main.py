@@ -12,7 +12,7 @@ GUILD_ID = os.getenv('GUILD_ID')
 intents = discord.Intents.all()
 intents.message_content = True
 
-bot = commands.Bot(command_prefix='!', intents=intents, application_id=APP_ID)
+bot = commands.Bot(command_prefix='/', intents=intents, application_id=APP_ID)
 
 @bot.event
 async def on_ready():
