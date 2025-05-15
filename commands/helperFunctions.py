@@ -10,7 +10,7 @@ class HelperFunction(commands.Cog):
         self.db = sqlite3.connect('KUA.db')
         self.cursor = self.db.cursor()
 
-    @app_commands.command(name="registeruser", description="Register a user in the database")
+    @app_commands.command(name="register", description="Register yourself in the database")
     async def register_user(self, interaction: discord.Interaction):
         await interaction.response.defer(thinking=True)
         user_id = interaction.user.id
