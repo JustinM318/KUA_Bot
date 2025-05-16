@@ -2,6 +2,8 @@ import datetime
 import sqlite3 
 import discord
 import asyncio
+import os
+from dotenv import load_dotenv
 from discord import app_commands
 from discord.ext import commands
 
@@ -10,18 +12,11 @@ class BirthdayCog(commands.Cog):
         self.bot = bot
         self.db = sqlite3.connect('KUA.db')
         self.cursor = self.db.cursor()
-
-        self.cursor.execute('''
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            birthday TEXT,
-            favoritePokemon TEXT,
-            currentAge INTEGER
-        )
-        ''')
-        self.db.commit()
        
+    async def getChannelID(self):
+        load_dotenv()
+        return os.getenv('KUA_CHANNEL_ID')
+
     async def birthday_checker(self):
         await self.bot.wait_until_ready()  # Wait until the bot is ready
         print("Birthday checker task started.")
@@ -42,7 +37,7 @@ class BirthdayCog(commands.Cog):
                 for birthday in birthdays:
                     user_id = birthday[0]
                     user = await self.bot.fetch_user(user_id)
-                    channel = await self.bot.fetch_channel(1371845449778204692)  # Replace with your channel ID
+                    channel = await self.bot.fetch_channel(await getChannelID())
                     # Send a birthday message to specific channel
                     if channel and user:
                         print(f"Sending birthday message to {user.name} in channel {channel.name}.")
