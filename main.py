@@ -3,11 +3,15 @@ import os
 from discord.ext import commands
 from dotenv import load_dotenv
 import asyncio
+import DBManagement
 
 load_dotenv()
 TOKEN = os.getenv('BOT_TOKEN')
 APP_ID = os.getenv('APPLICATION_ID')
 GUILD_ID = os.getenv('GUILD_ID')
+
+db_manager = DBManagement.DBManagement()
+db_manager.dbCreation()
 
 intents = discord.Intents.all()
 intents.message_content = True
