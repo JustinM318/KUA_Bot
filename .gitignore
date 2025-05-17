@@ -4,3 +4,7 @@
 *.toml
 *.lock
 *.replit
+*.session.sql
+.vscode
+assets/
+**/__pycache__/

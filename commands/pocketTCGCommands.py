@@ -8,7 +8,7 @@ import time
 from discord import app_commands
 from discord.ext import commands
 
-class PocketTCGFunctions(commands.Cog):
+class PocketTCGCommands(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.db = sqlite3.connect('KUA.db')
@@ -39,7 +39,7 @@ class PocketTCGFunctions(commands.Cog):
             self.cursor.execute('''
             SELECT pocketTCG_FriendIDusers 
             FROM users
-            WHERE user_id = ?''', (lookupUser.id))
+            WHERE user_id = ?''', (lookupUser.id,))
             friendID = self.cursor.fetchone()      
         except Exception as e:
             print(e)
@@ -48,4 +48,4 @@ class PocketTCGFunctions(commands.Cog):
         await interaction.followup.send(f'{lookupUser.name}\'s FriendID is {friendID}', ephemeral=True)
                   
 async def setup(bot):
-    await bot.add_cog(PocketTCGFunctions(bot))
+    await bot.add_cog(PocketTCGCommands(bot))

@@ -5,7 +5,7 @@ import sqlite3
 from discord import app_commands
 from discord.ext import commands
         
-class HelperFunction(commands.Cog):
+class HelperCommands(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.discord = discord
@@ -45,7 +45,7 @@ class HelperFunction(commands.Cog):
             try:
                 self.cursor.execute('''
                     INSERT INTO users (user_id) VALUES (?)
-                ''', user_id,)
+                ''', (user_id,))
             except Exception as e:
                 print(e)
                 await interaction.followup.send(f"An error occurred while registering: {e}", ephemeral=True)
@@ -84,4 +84,4 @@ class HelperFunction(commands.Cog):
     #     if message.content == ''
      
 async def setup(bot):
-    await bot.add_cog(HelperFunction(bot))
+    await bot.add_cog(HelperCommands(bot))

@@ -3,15 +3,19 @@ import os
 from discord.ext import commands
 from dotenv import load_dotenv
 import asyncio
-import DBManagement
+from functions.dbFunctions import dbManagement
 
 load_dotenv()
 TOKEN = os.getenv('BOT_TOKEN')
 APP_ID = os.getenv('APPLICATION_ID')
 GUILD_ID = os.getenv('GUILD_ID')
 
-db_manager = DBManagement.DBManagement()
-db_manager.dbCreation()
+print('\n#############################################')
+print('Bot starting...')
+print('#############################################\n')
+
+db = dbManagement()
+db.dbCreation()
 
 intents = discord.Intents.all()
 intents.message_content = True
@@ -28,11 +32,11 @@ async def on_ready():
         print(f"Error syncing commands: {e}")
 
 async def birthday_check():
-    birthday_cog = bot.get_cog("BirthdayCog")
-    if birthday_cog:
-        bot.loop.create_task(birthday_cog.birthday_checker())
+    birthday_commands = bot.get_cog("BirthdayCommands")
+    if birthday_commands:
+        bot.loop.create_task(birthday_commands.birthday_checker())
     else:
-        print("BirthdayCog not found!")
+        print("BirthdayCommands not found!")
 
 # Load the cogs from commands
 async def load_cogs():
@@ -51,4 +55,5 @@ async def main():
         await birthday_check()  # Start the birthday checker
         await bot.start(TOKEN)
 
+print('\nRunning main...')
 asyncio.run(main())

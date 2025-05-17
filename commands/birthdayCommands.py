@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 from discord import app_commands
 from discord.ext import commands
 
-class BirthdayCog(commands.Cog):
+class BirthdayCommands(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.db = sqlite3.connect('KUA.db')
@@ -16,7 +16,23 @@ class BirthdayCog(commands.Cog):
     async def getChannelID(self):
         load_dotenv()
         return os.getenv('KUA_CHANNEL_ID')
-
+    
+    async def birthday_converter(self, date_str):
+        date_obj = datetime.datetime.strptime(date_str, '%m/%d')
+        month = date_obj.strftime('%B')
+        day = int(date_obj.strftime('%d'))
+        if 11 <= day <= 13:
+            suffix = "th"
+        elif day % 10 == 1:
+            suffix = "st"
+        elif day % 10 == 2:
+            suffix = "nd"
+        elif day % 10 == 3:
+            suffix = "rd"
+        else:
+            suffix = "th"
+        return f"{month} {day}{suffix}"
+        
     async def birthday_checker(self):
         await self.bot.wait_until_ready()  # Wait until the bot is ready
         print("Birthday checker task started.")
@@ -37,7 +53,7 @@ class BirthdayCog(commands.Cog):
                 for birthday in birthdays:
                     user_id = birthday[0]
                     user = await self.bot.fetch_user(user_id)
-                    channel = await self.bot.fetch_channel(await getChannelID())
+                    channel = await self.bot.fetch_channel(await self.getChannelID())
                     # Send a birthday message to specific channel
                     if channel and user:
                         print(f"Sending birthday message to {user.name} in channel {channel.name}.")
@@ -68,10 +84,8 @@ class BirthdayCog(commands.Cog):
     @app_commands.command(name="registerbirthday", description="Register or update a birthday")
     @app_commands.describe(user="The user to register or update (only for admins)", birthday="The birthday in MM/DD format")
     async def register_birthday(self, interaction: discord.Interaction, birthday: str, user: discord.User = None):
-        # Defer interaction to show that the bot is processing
         await interaction.response.defer(thinking=True)
 
-        # Check if the user is an admin
         permissions = interaction.channel.permissions_for(interaction.user)
         is_admin = permissions.administrator
 
@@ -83,7 +97,6 @@ class BirthdayCog(commands.Cog):
         # Determine the target user (self if not admin or no user specified)
         target_user = user if is_admin and user is not None else interaction.user
 
-        # Validate the birthday format (MM/DD)
         if not isinstance(birthday, str) or len(birthday) != 5 or birthday[2] != '/':
             await interaction.followup.send("Invalid birthday format. Please use MM/DD.", ephemeral=True)
             return
@@ -91,27 +104,30 @@ class BirthdayCog(commands.Cog):
         try:
             # Check if the birthday already exists for the target user
             self.cursor.execute('''
-            SELECT * FROM users WHERE user_id = ?
+            SELECT birthday FROM users WHERE user_id = ?
             ''', (target_user.id,))
             existing_birthday = self.cursor.fetchone()
 
-            if existing_birthday:
+            if existing_birthday[0]:
                 # Update the birthday if it already exists
                 self.cursor.execute('''
                 UPDATE users SET birthday = ? WHERE user_id = ?
                 ''', (birthday, target_user.id))
                 self.db.commit()
-                await interaction.followup.send(f"Updated birthday for {target_user}: {birthday}!")
+                print(f"Updated birthday from {existing_birthday[0]} to {birthday} for {target_user.name}")
+                await interaction.followup.send(f"Updated birthday for {target_user} to {await self.birthday_converter(birthday)}!")
             else:
                 # Insert a new birthday if it doesn't exist
                 self.cursor.execute('''
-                INSERT INTO users (user_id, birthday)
-                VALUES (?, ?)
-                ''', (target_user.id, birthday))
+                UPDATE users 
+                SET birthday = ?
+                WHERE user_id = ?
+                ''', (birthday, target_user.id))
                 self.db.commit()
-                print(f"Inserted birthday for {target_user}: {birthday}")
-                await interaction.followup.send(f"Registered birthday for {target_user}: {birthday}!")
+                print(f"Inserted new birthday for {target_user}: {birthday}")
+                await interaction.followup.send(f"Registered birthday for {target_user}: {await self.birthday_converter(birthday)}!")
         except sqlite3.Error as e:
+            print(e)
             await interaction.followup.send(f"An error occurred: {e}", ephemeral=True)
 
     @app_commands.command(name="listbirthdays", description="List all registered birthdays")
@@ -124,20 +140,21 @@ class BirthdayCog(commands.Cog):
             self.cursor.execute('''
             SELECT user_id, birthday FROM users
             ''')
-            birthdays = self.cursor.fetchall()
-
-            if birthdays:
-                birthday_list = "\n".join([f"<@{user_id}>: {birthday}" for user_id, birthday in birthdays])
+            results = self.cursor.fetchall()
+            for results.__len__ in results:
+                birthday_list = "\n".join([f"<@{self.bot.fetch_user(user_id).name}>: {await self.birthday_converter(birthday)})" for user_id, birthday in results])
                 print(f"Registered birthdays:\n{birthday_list}")
-                discord.embed(
-                    title="Registered Birthdays",
-                    description=birthday_list,
-                    color=discord.Color.blue()
-                )
-                #await interaction.followup.send(f"Registered birthdays:\n{birthday_list}")
+                # embed = discord.embed(
+                #     title="Registered Birthdays",
+                #     description=birthday_list,
+                #     color=discord.Color.blue()
+                # )
+                await interaction.followup.send(f"Registered birthdays:\n{birthday_list}")
             else:
+                print("No registered birthdays found.")
                 await interaction.followup.send("No registered birthdays found.", ephemeral=True)
-        except sqlite3.Error as e:
+        except Exception as e:
+            print (e)
             await interaction.followup.send(f"An error occurred: {e}", ephemeral=True)
             
     @app_commands.command(name="deletebirthday", description="Delete a birthday")
@@ -175,4 +192,4 @@ class BirthdayCog(commands.Cog):
             await interaction.followup.send(f"An error occurred: {e}", ephemeral=True)
             
 async def setup(bot):
-    await bot.add_cog(BirthdayCog(bot))
+    await bot.add_cog(BirthdayCommands(bot))
